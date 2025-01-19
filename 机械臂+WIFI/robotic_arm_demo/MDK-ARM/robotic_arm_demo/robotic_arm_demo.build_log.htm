@@ -1,0 +1,152 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: ¦ÌVision V5.29.0.0
+Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: a Lenovo, a, LIC=RC93N-Y68TF-QDIKD-82VE2-G89H5-4VFTL
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Plus  Version: 5.29.0.0
+Toolchain Path:  D:\keil4\keil_MDK\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 6 (build 750)
+Assembler:       Armasm.exe V5.06 update 6 (build 750)
+Linker/Locator:  ArmLink.exe V5.06 update 6 (build 750)
+Library Manager: ArmAr.exe V5.06 update 6 (build 750)
+Hex Converter:   FromElf.exe V5.06 update 6 (build 750)
+CPU DLL:         SARMCM3.DLL V5.29.0.0
+Dialog DLL:      DCM.DLL V1.17.3.0
+Target DLL:      STLink\ST-LINKIII-KEIL_SWO.dll V3.0.7.0
+Dialog DLL:      TCM.DLL V1.36.5.0
+ 
+<h2>Project:</h2>
+D:\code COLLECTION\»úÐµ±Û +WIFI\robotic_arm_demo\MDK-ARM\robotic_arm_demo.uvprojx
+Project File Date:  02/12/2023
+
+<h2>Output:</h2>
+*** Using Compiler 'V5.06 update 6 (build 750)', folder: 'D:\keil4\keil_MDK\ARM\ARMCC\Bin'
+Rebuild target 'robotic_arm_demo'
+assembling startup_stm32f103xb.s...
+compiling MQTT.c...
+compiling openmv.c...
+../Core/Inc/stdio.h(20): warning:  #47-D: incompatible redefinition of macro "__ARMCLIB_VERSION"  (declared at line 22 of "D:\keil4\keil_MDK\ARM\ARMCC\Bin\..\include\stddef.h")
+  #define __ARMCLIB_VERSION 5060044
+../Core/Inc/usart.h(59): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+..\Core\Src\openmv.c: 2 warnings, 0 errors
+compiling gpio.c...
+compiling stm32f1xx_it.c...
+compiling stm32f1xx_hal_gpio_ex.c...
+compiling esp01s.c...
+../Core/Inc/usart.h(59): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+esp01s.c(197): warning:  #177-D: variable "GPIO_Initure"  was declared but never referenced
+  	GPIO_InitTypeDef GPIO_Initure;
+esp01s.c: 2 warnings, 0 errors
+compiling stm32f1xx_hal_msp.c...
+compiling tim.c...
+compiling main.c...
+../Core/Inc/usart.h(59): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+../Core/Inc/oled.h(74): warning:  #1295-D: Deprecated declaration Picture - give arg types
+  void Picture();
+../Core/Inc/oled.h(75): warning:  #1295-D: Deprecated declaration IIC_Start - give arg types
+  void IIC_Start();
+../Core/Inc/oled.h(76): warning:  #1295-D: Deprecated declaration IIC_Stop - give arg types
+  void IIC_Stop();
+../Core/Inc/oled.h(81): warning:  #1295-D: Deprecated declaration IIC_Wait_Ack - give arg types
+  void IIC_Wait_Ack();
+../Core/Inc/oled.h(83): warning:  #1-D: last line of file ends without a newline
+  	 
+../Core/Inc/stdio.h(20): warning:  #47-D: incompatible redefinition of macro "__ARMCLIB_VERSION"  (declared at line 17 of "D:\keil4\keil_MDK\ARM\ARMCC\Bin\..\include\stdlib.h")
+  #define __ARMCLIB_VERSION 5060044
+../Core/Src/main.c: 7 warnings, 0 errors
+compiling Onenet.c...
+../Core/Inc/usart.h(59): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+Onenet.c(88): warning:  #177-D: variable "Temp"  was declared but never referenced
+  	float Temp;
+Onenet.c(89): warning:  #177-D: variable "Humidity"  was declared but never referenced
+      float Humidity;
+Onenet.c: 3 warnings, 0 errors
+compiling usart.c...
+../Core/Inc/usart.h(59): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+../Core/Src/usart.c(266): warning:  #1-D: last line of file ends without a newline
+  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+../Core/Src/usart.c: 2 warnings, 0 errors
+compiling stm32f1xx_hal.c...
+compiling oled.c...
+../Core/Inc/oled.h(74): warning:  #1295-D: Deprecated declaration Picture - give arg types
+  void Picture();
+../Core/Inc/oled.h(75): warning:  #1295-D: Deprecated declaration IIC_Start - give arg types
+  void IIC_Start();
+../Core/Inc/oled.h(76): warning:  #1295-D: Deprecated declaration IIC_Stop - give arg types
+  void IIC_Stop();
+../Core/Inc/oled.h(81): warning:  #1295-D: Deprecated declaration IIC_Wait_Ack - give arg types
+  void IIC_Wait_Ack();
+../Core/Inc/oled.h(83): warning:  #1-D: last line of file ends without a newline
+  	 
+..\Core\Src\oled.c: 5 warnings, 0 errors
+compiling stm32f1xx_hal_tim_ex.c...
+compiling servo.c...
+../Core/Inc/math.h(28): warning:  #47-D: incompatible redefinition of macro "__ARMCLIB_VERSION"  (declared at line 22 of "D:\keil4\keil_MDK\ARM\ARMCC\Bin\..\include\stddef.h")
+  #define __ARMCLIB_VERSION 6150002
+../Core/Inc/stdio.h(20): warning:  #47-D: incompatible redefinition of macro "__ARMCLIB_VERSION"  (declared at line 28 of "../Core/Inc/math.h")
+  #define __ARMCLIB_VERSION 5060044
+../Core/Inc/stdio.h(34): warning:  #47-D: incompatible redefinition of macro "_ARMABI"  (declared at line 69 of "../Core/Inc/math.h")
+  #define _ARMABI __declspec(__nothrow)
+../Core/Inc/oled.h(74): warning:  #1295-D: Deprecated declaration Picture - give arg types
+  void Picture();
+../Core/Inc/oled.h(75): warning:  #1295-D: Deprecated declaration IIC_Start - give arg types
+  void IIC_Start();
+../Core/Inc/oled.h(76): warning:  #1295-D: Deprecated declaration IIC_Stop - give arg types
+  void IIC_Stop();
+../Core/Inc/oled.h(81): warning:  #1295-D: Deprecated declaration IIC_Wait_Ack - give arg types
+  void IIC_Wait_Ack();
+../Core/Inc/oled.h(83): warning:  #1-D: last line of file ends without a newline
+  	 
+..\Core\Src\servo.c: 8 warnings, 0 errors
+compiling stm32f1xx_hal_tim.c...
+compiling stm32f1xx_hal_rcc_ex.c...
+compiling stm32f1xx_hal_rcc.c...
+compiling stm32f1xx_hal_exti.c...
+compiling stm32f1xx_hal_uart.c...
+compiling system_stm32f1xx.c...
+compiling stm32f1xx_hal_pwr.c...
+compiling stm32f1xx_hal_gpio.c...
+compiling stm32f1xx_hal_cortex.c...
+compiling stm32f1xx_hal_flash.c...
+compiling stm32f1xx_hal_flash_ex.c...
+compiling stm32f1xx_hal_dma.c...
+linking...
+Program Size: Code=21820 RO-data=428 RW-data=2000 ZI-data=2168  
+FromELF: creating hex file...
+"robotic_arm_demo\robotic_arm_demo.axf" - 0 Error(s), 29 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: ARM
+                http://www.keil.com/pack/ARM.CMSIS.5.6.0.pack
+                ARM.CMSIS.5.6.0
+                CMSIS (Cortex Microcontroller Software Interface Standard)
+   * Component: CORE Version: 5.3.0
+
+Package Vendor: Keil
+                http://www.keil.com/pack/Keil.STM32F1xx_DFP.2.3.0.pack
+                Keil.STM32F1xx_DFP.2.3.0
+                STMicroelectronics STM32F1 Series Device Support, Drivers and Examples
+
+<h2>Collection of Component include folders:</h2>
+  .\RTE\_robotic_arm_demo
+  D:\keil4\keil_MDK\PACK\ARM\CMSIS\5.6.0\CMSIS\Core\Include
+  D:\keil4\keil_MDK\PACK\Keil\STM32F1xx_DFP\2.3.0\Device\Include
+
+<h2>Collection of Component Files used:</h2>
+
+   * Component: ARM::CMSIS:CORE:5.3.0
+Build Time Elapsed:  00:00:12
+</pre>
+</body>
+</html>
