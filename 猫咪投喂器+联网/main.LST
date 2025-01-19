@@ -1,0 +1,656 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\keil4\keil_MDK\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg52.h" //此文件中定义了单片机的一些特殊功能寄存器
+   2          #include "temp.h"
+   3          #include <stdio.h> //包含sprintf函数
+   4          #include <OLED.h>
+   5          
+   6          
+   7          typedef unsigned int u16; //对数据类型进行声明定义
+   8          
+   9          sbit led0 = P2 ^ 0;
+  10          sbit led1 = P2 ^ 1;
+  11          sbit led2 = P2 ^ 2;
+  12          sbit led3 = P2 ^ 3;
+  13          sbit led4 = P2 ^ 4;
+  14          sbit led5 = P2 ^ 5;
+  15          sbit led6 = P2 ^ 6;
+  16          sbit led7 = P2^7;
+  17          sbit Rst = P0 ^ 3;
+  18          sbit jidianqi1 = P1^1;
+  19          sbit jidianqi2 = P0 ^ 1;
+  20          sbit DC_Motor=P1^0;
+  21          uchar Receive, i;
+  22          uchar Recive_table[35];    //接收缓存区
+  23          uint USART_R = 0, n, sign; //接收完成标志位、温度计算中间量、运行状态标志位
+  24          uchar tabT[4] = {0};       //温度缓存单元
+  25          uchar tabH[4] = {0};       //湿度缓存单元
+  26          uchar temp[2] = {0};       //缓存数组
+  27          uchar temp1[2] = {0};      //缓存数组
+  28          uchar Tem, Hum;
+  29          u8 autoctrl = 0;
+  30          u8 max_Hum = 90;
+  31          u8 max_Tem = 30;
+  32          u8 times = 0,move;
+  33          u8 count = 0;
+  34          uint counter=0;
+  35          u8 wait_times = 0;
+  36          uchar hour=18,min=30,sec=00;  
+  37          unsigned int Timer2_Server_Count;
+  38          void delay_10us(u16 ten_us)
+  39          {
+  40   1        while(ten_us--);  
+  41   1      }
+  42          void ms_delay(uint t) //延时1ms
+  43          {
+  44   1          uint i, j;
+  45   1          for (i = t; i > 0; i--)
+  46   1              for (j = 110; j > 0; j--)
+  47   1                  ;
+  48   1      }
+  49          
+  50          void us_delay(uchar t) //延时1us
+  51          {
+  52   1          while (t--)
+  53   1              ;
+  54   1      }
+  55          /********************************************************************
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 2   
+
+  56          名称：串口初始化
+  57          ********************************************************************/
+  58          void Uart_Init() //使用定时器1作为波特率发生器
+  59          {
+  60   1          TMOD &= 0x0F; //模式1
+  61   1          TMOD |= 0x20;
+  62   1      
+  63   1          SCON = 0x50; //设置串行方式
+  64   1          TH1 = 0xFD;  //波特率9600
+  65   1          TL1 = TH1;
+  66   1          PCON = 0x00;
+  67   1          PS = 1; //高中断优先级
+  68   1      
+  69   1          EA = 1;  //打开总中断
+  70   1          ES = 1;  //开串口中断
+  71   1          TR1 = 1; //启动定时器1
+  72   1      }
+  73          
+  74          /********************************************************************
+  75          定时器0初始化
+  76          ********************************************************************/
+  77          
+  78          void Time0_Init() //定时器0初始化
+  79          {
+  80   1          TMOD &= 0xF0;
+  81   1          TMOD &= 0xF0; //模式1
+  82   1          TMOD |= 0x01;
+  83   1      
+  84   1          TH0 = 0xDC; //给定时器赋初值，定时10ms
+  85   1          TL0 = 0x00;
+  86   1          ET0 = 1; //打开定时器0中断允许
+  87   1          EA = 1;  //打开总中断
+  88   1      }
+  89          
+  90          
+  91          /********************************************************************
+  92          名称：串口发送函数  功能：MCU向无线WIFI模块ESP8266发送数据
+  93          ********************************************************************/
+  94          void Send_Uart(uchar value)
+  95          {
+  96   1          ES = 0;       //关闭串口中断
+  97   1          TI = 0;       //清发送完毕中断请求标志位
+  98   1          SBUF = value; //发送
+  99   1          while (TI == 0)
+ 100   1              ;   //等待发送完毕
+ 101   1          TI = 0; //清发送完毕中断请求标志位
+ 102   1          ES = 1; //允许串口中断
+ 103   1      }
+ 104          /********************************************************************
+ 105          名称：WIFI模块设置函数  作用: 启动模块，以便可以实现无线接入和控制
+ 106          ********************************************************************/
+ 107          
+ 108          void ESP8266_Set(uchar *puf) // 数组指针*puf指向字符串数组
+ 109          {
+ 110   1          while (*puf != '\0')
+ 111   1          {
+ 112   2              Send_Uart(*puf); //向WIFI模块发送控制指令。
+ 113   2              us_delay(5);
+ 114   2              puf++;
+ 115   2          }
+ 116   1          us_delay(5);
+ 117   1          Send_Uart('\r'); //回车
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 3   
+
+ 118   1          us_delay(5);
+ 119   1          Send_Uart('\n'); //换行
+ 120   1      }
+ 121          /********************************************************************
+ 122          名称：WIFI模块设置函数  作用: 启动模块，以便可以实现无线接入和控制
+ 123          ********************************************************************/
+ 124          void WIFI_Send(uchar *puf) // 数组指针*puf指向字符串数组
+ 125          {
+ 126   1          while (*puf != '\0')
+ 127   1          {
+ 128   2              Send_Uart(*puf); //串口输出信号
+ 129   2              us_delay(5);
+ 130   2              puf++;
+ 131   2          }
+ 132   1      }
+ 133          
+ 134          /********************************************************************
+ 135          名称：TCP连接报文
+ 136          ********************************************************************/
+ 137          void Tcp_Connect()
+ 138          {
+ 139   1          Send_Uart(0x10);   //固定报头
+ 140   1          Send_Uart(0x70);   //剩余长度=0X10＋客户端ID长度+用户名长度+密码长度的16进制
+ 141   1          Send_Uart(0x00);   //可变报头
+ 142   1          Send_Uart(0x04);   //可变报头
+ 143   1          WIFI_Send("MQTT"); //可变报头
+ 144   1          Send_Uart(0x04);   //可变报头
+ 145   1          Send_Uart(0xC2);   //可变报头
+ 146   1          Send_Uart(0x00);   //可变报头
+ 147   1          Send_Uart(0x64);   //可变报头
+ 148   1          Send_Uart(0x00);   //客户端ID长度00 28  即40字节
+ 149   1          Send_Uart(0x27);
+ 150   1          WIFI_Send("esp10|securemode=3,signmethod=hmacsha1|"); //客户端IDesp10|securemode=3,signmethod=hmacsha1
+             -|
+ 151   1          Send_Uart(0x00);                                      //用户名长度00 12 即18字节
+ 152   1          Send_Uart(0x11);
+ 153   1          WIFI_Send("esp10&a1ZqmIXSuSi"); //用户名esp10&a1ZqmIXSuSi
+ 154   1          Send_Uart(0x00);                //密码长度00 28  即40字节
+ 155   1          Send_Uart(0x28);
+ 156   1          WIFI_Send("ce35bf80a1b30a4aa6f944afabe63e791c91ce29"); //密码
+ 157   1      }
+ 158          /********************************************************************
+ 159          名称：上报温度
+ 160          ********************************************************************/
+ 161          void Up_Report()
+ 162          {
+ 163   1          DHT11_receive();
+ 164   1          tabT[0] = Tem / 100 + 0x30;
+ 165   1          tabT[1] = Tem / 10 % 10 + 0x30;
+ 166   1          tabT[2] = Tem % 10 + 0x30;
+ 167   1          tabH[0] = Hum / 100 + 0x30;
+ 168   1          tabH[1] = Hum / 10 % 10 + 0x30;
+ 169   1          tabH[2] = Hum % 10 + 0x30;
+ 170   1          Send_Uart(0x30); //固定报头
+ 171   1          Send_Uart(0x9A); //剩余长度
+ 172   1          Send_Uart(0x01);
+ 173   1      
+ 174   1          Send_Uart(0x00); //可变报头
+ 175   1          Send_Uart(0x30);
+ 176   1          WIFI_Send("/sys/a1ZqmIXSuSi/esp10/thing/event/property/post");
+ 177   1          WIFI_Send("{\"method\":\"thing.event.property.post\",\"id\":\"395041230\",\"params\":{\"");
+ 178   1          WIFI_Send("Tem"); //标识符Tem
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 4   
+
+ 179   1          WIFI_Send("\":");
+ 180   1          WIFI_Send(&tabT);
+ 181   1          WIFI_Send(",\"Hum"); //标识符Hum
+ 182   1          WIFI_Send("\":");
+ 183   1          WIFI_Send(&tabH);
+ 184   1          WIFI_Send("},\"version\":\"1.0.0\"}");
+ 185   1      }
+ 186          
+ 187          /*******************************************************************************
+ 188           * 函 数 名       : main
+ 189           * 函数功能    : 主函数
+ 190           * 输    入       : 无
+ 191           * 输    出      : 无
+ 192           *******************************************************************************/
+ 193          void main()
+ 194          {
+ 195   1        
+ 196   1          Time0_Init();
+ 197   1          TR0 = 0; //初始化但不打开
+ 198   1      RCAP2H=0x0B;    //溢出时，将RCAP2H重装入TH2
+ 199   1        RCAP2L=0xDC;    //溢出时，将RCAP2L重装入TL2
+ 200   1        TR2=1;          //允许T2工作
+ 201   1        ET2=1;        //允许T2中断
+ 202   1        EA=1;   
+ 203   1          ms_delay(1000);
+ 204   1          Uart_Init();
+ 205   1          sign = 1;
+ 206   1          OLED_Init();                    //初始化OLED  
+ 207   1        OLED_Clear();                   //清空屏幕
+ 208   1          // TR0 = 1; //打开定时器0
+ 209   1          while (1)
+ 210   1          {       OLED_ShowNum(78,0,hour/10,1,8); //小时十位
+ 211   2              OLED_ShowNum(84,0,hour%10,1,8); //小时十位
+ 212   2              OLED_ShowString(90,0,":",8);    //小时后面的冒号
+ 213   2              OLED_ShowNum(96,0,min/10,1,8);  //分钟十位
+ 214   2              OLED_ShowNum(102,0,min%10,1,8); //分钟个位
+ 215   2              OLED_ShowString(108,0,":",8);   //分钟后面的冒号
+ 216   2              OLED_ShowNum(114,0,sec/10,1,8); //秒钟十位    
+ 217   2              OLED_ShowNum(120,0,sec%10,1,8); //秒钟个位}
+ 218   2               OLED_ShowCHinese(0,0,6); 
+ 219   2             OLED_ShowCHinese(15,0,7);  
+ 220   2             OLED_ShowCHinese(30,0,8);  
+ 221   2             OLED_ShowCHinese(45,0,9);  
+ 222   2             OLED_ShowCHinese(60,0,10); 
+ 223   2              
+ 224   2              if (sign == 1) // sign=1，表示需要重新连接服务器
+ 225   2              {
+ 226   3                  TR0 = 0;
+ 227   3                  Rst = 0;       //重启esp8266模块
+ 228   3                  ms_delay(100); //重启esp8266模块
+ 229   3                  Rst = 1;       //重启esp8266模块
+ 230   3                  ms_delay(2000);
+ 231   3                  n = 18;
+ 232   3                  ESP8266_Set("ATE0");                                     //取消回传
+ 233   3                  while (Recive_table[0] != 'O' || Recive_table[1] != 'K') //等待esp8266模块返回ok
+ 234   3                  {
+ 235   4                      led1 = 0; // led1亮
+ 236   4                      ms_delay(100);
+ 237   4                  }
+ 238   3                  led1 = 1;            // led1灭
+ 239   3                  Recive_table[0] = 0; //清除接收缓存区
+ 240   3                  Recive_table[1] = 0;
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 5   
+
+ 241   3      
+ 242   3                  ESP8266_Set("AT+CWMODE=1");                              //客户端模式，作为clint使用
+ 243   3                  while (Recive_table[0] != 'O' || Recive_table[1] != 'K') //等待esp8266模块返回ok
+ 244   3                  {
+ 245   4                      led2 = 0; // led2亮
+ 246   4                      ms_delay(100);
+ 247   4                  }
+ 248   3                  led2 = 1;            // led1灭
+ 249   3                  Recive_table[0] = 0; //清除接收缓存区
+ 250   3                  Recive_table[1] = 0;
+ 251   3                  ESP8266_Set("AT+CWJAP=\"WIFI\",\"00000000\"");           //连接WiFi
+ 252   3                  while (Recive_table[0] != 'O' || Recive_table[1] != 'K') //等待esp8266模块返回ok
+ 253   3                  {
+ 254   4                      led3 = 0; // led3亮
+ 255   4                      ms_delay(100);
+ 256   4                  }
+ 257   3                  led3 = 1;            // led3灭
+ 258   3                  Recive_table[0] = 0; //清除接收缓存区
+ 259   3                  Recive_table[1] = 0;
+ 260   3                  ESP8266_Set("AT+CIPSTART=\"TCP\",\"a1ZqmIXSuSi.iot-as-mqtt.cn-shanghai.aliyuncs.com\",1883"); 
+             -//连接tcp服务器
+ 261   3                  while (Recive_table[0] != 'O' || Recive_table[1] != 'K')                                      
+             -//等待esp8266模块返回ok
+ 262   3                  {
+ 263   4                      led4 = 0; // led4亮
+ 264   4                      ms_delay(100);
+ 265   4                  }
+ 266   3                  led4 = 1;            // led4灭
+ 267   3                  Recive_table[0] = 0; //清除接收缓存区
+ 268   3                  Recive_table[1] = 0;
+ 269   3                  ESP8266_Set("AT+CIPMODE=1");                             //设置透传模式
+ 270   3                  while (Recive_table[0] != 'O' || Recive_table[1] != 'K') //等待esp8266模块返回ok
+ 271   3                  {
+ 272   4                   
+ 273   4                      ms_delay(100);
+ 274   4                  }
+ 275   3                            
+ 276   3                  ESP8266_Set("AT+CIPSEND");     //进入透传模式
+ 277   3                  while (Recive_table[0] != '>') //等待esp8266模块返回ok
+ 278   3                  {
+ 279   4                      led6 = 0; // led6亮
+ 280   4                      ms_delay(100);
+ 281   4                  }
+ 282   3                  led6 = 1; // led6灭
+ 283   3      
+ 284   3                  Tcp_Connect(); //发送连接报文
+ 285   3                  ms_delay(100);
+ 286   3                  TR0 = 1; //打开定时器0
+ 287   3                  
+ 288   3                  led7 = 0;
+ 289   3                  sign = 0; //连接成功，sign置0
+ 290   3              }
+ 291   2      
+ 292   2              if (sign == 0) // sign=0表示连接正常，判断接受控制指令
+ 293   2              {
+ 294   3                 
+ 295   3                  ms_delay(100);
+ 296   3                  if (times == 1)
+ 297   3                  {
+ 298   4      
+ 299   4                      TR0 = 0; //关闭定时器
+ 300   4                   
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 6   
+
+ 301   4                      Up_Report(); //上传温度
+ 302   4                      times = 0;
+ 303   4                    if (move==1)
+ 304   4                   {         DC_Motor=1;        
+ 305   5                    OLED_ShowCHinese(50,2,0);       //投  从第0列（占用0-15，共16列）、   第0页（占0-1页：0-16行像素）、Hzk
+             -[0]:‘投’  
+ 306   5                      OLED_ShowCHinese(66,2,1);       
+ 307   5                      OLED_ShowCHinese(82 ,2,2);
+ 308   5                    counter++;
+ 309   5                   }
+ 310   4                   if (move==0)
+ 311   4      {  DC_Motor=0;  
+ 312   5                      OLED_ShowCHinese(50,2,3);       //投  从第0列（占用0-15，共16列）、   第1页（占0-1页：0-16行像
+             -素）、Hzk[0]:‘投’ 
+ 313   5                      OLED_ShowCHinese(66,2,4);       
+ 314   5                      OLED_ShowCHinese(82 ,2,5);  
+ 315   5      OLED_ShowNum(90,2,counter,6,8);
+ 316   5        
+ 317   5      }
+ 318   4                      if (autoctrl == 0) // 自动控制
+ 319   4                      {
+ 320   5                          if (Hum >= max_Hum)
+ 321   5                          {
+ 322   6      
+ 323   6                           
+ 324   6                                    led5=0;
+ 325   6                                            
+ 326   6                          }
+ 327   5                       
+ 328   5                         
+ 329   5                       if (Tem >= max_Tem)
+ 330   5                          {
+ 331   6      
+ 332   6                            
+ 333   6                                
+ 334   6                                        led5=0;
+ 335   6                                          
+ 336   6                          }
+ 337   5                          if (Tem <max_Tem&&Hum < max_Hum)
+ 338   5                          {
+ 339   6                          led5=1;
+ 340   6                          }
+ 341   5                        
+ 342   5                          temp[0] = ~DC_Motor;
+ 343   5                          temp[0] = temp[0] + 48;
+ 344   5                          temp1[0] = ~led5;
+ 345   5                          temp1[0] = temp1[0] + 48;
+ 346   5                          Send_Uart(0x30);
+ 347   5                          Send_Uart(0x92);
+ 348   5                          Send_Uart(0x01);
+ 349   5                          Send_Uart(0x00);
+ 350   5                          Send_Uart(0x30);
+ 351   5                          WIFI_Send("/sys/a1ZqmIXSuSi/esp10/thing/event/property/post");
+ 352   5                          WIFI_Send("{\"method\":\"thing.event.property.post\",\"id\":\"395041230\",\"params\":{
+             -\"");
+ 353   5                          WIFI_Send("M");
+ 354   5                          WIFI_Send("\":");
+ 355   5                          WIFI_Send(&temp); // bool
+ 356   5                          WIFI_Send(",\"N");
+ 357   5                          WIFI_Send("\":");
+ 358   5                          WIFI_Send(&temp1); // bool
+ 359   5                          WIFI_Send("},\"version\":\"1.0.0\"}");
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 7   
+
+ 360   5                      }
+ 361   4                      TR0 = 1; //关闭定时器
+ 362   4                  }
+ 363   3      
+ 364   3      
+ 365   3                  if (USART_R == 1)//应该是这个APP上换手动和自动模式
+ 366   3                  {
+ 367   4                      TR0 = 0;
+ 368   4                      if (Recive_table[2] == 'T' && ((Recive_table[5] == '1') || (Recive_table[5] == '0')))
+ 369   4                      {
+ 370   5                          if (autoctrl == 0)
+ 371   5                          {
+ 372   6                              autoctrl = 1;
+ 373   6                          }
+ 374   5                          else
+ 375   5                          {
+ 376   6                              autoctrl = 0;
+ 377   6                          }
+ 378   5                          temp[0] = autoctrl + 48;
+ 379   5                          Send_Uart(0x30);
+ 380   5                          Send_Uart(0x8C);
+ 381   5                          Send_Uart(0x01);
+ 382   5                          Send_Uart(0x00);
+ 383   5                          Send_Uart(0x30);
+ 384   5                          WIFI_Send("/sys/a1ZqmIXSuSi/esp10/thing/event/property/post");
+ 385   5                          WIFI_Send("{\"method\":\"thing.event.property.post\",\"id\":\"395041230\",\"params\":{
+             -\"");
+ 386   5                          WIFI_Send("D");
+ 387   5                          WIFI_Send("\":");
+ 388   5                          WIFI_Send(&temp); // bool
+ 389   5                          WIFI_Send("},\"version\":\"1.0.0\"}");
+ 390   5                          count = 0;
+ 391   5                      }
+ 392   4      
+ 393   4                      if (autoctrl == 1) // 手动控制
+ 394   4                      {
+ 395   5      
+ 396   5                          if (Recive_table[2] == 'A' && ((Recive_table[5] == '1') || (Recive_table[5] == '0')))
+ 397   5                          {
+ 398   6                              if (DC_Motor == 0)
+ 399   6                              {
+ 400   7                                  DC_Motor = 1;
+ 401   7                              }
+ 402   6                              else
+ 403   6                              {
+ 404   7                                  DC_Motor = 0;
+ 405   7                              }
+ 406   6                              temp[0] = ~DC_Motor;
+ 407   6                              temp[0] = temp[0] + 48;
+ 408   6                              Send_Uart(0x30);
+ 409   6                              Send_Uart(0x8C);
+ 410   6                              Send_Uart(0x01);
+ 411   6                              Send_Uart(0x00);
+ 412   6                              Send_Uart(0x30);
+ 413   6                              WIFI_Send("/sys/a1ZqmIXSuSi/esp10/thing/event/property/post");
+ 414   6                              WIFI_Send("{\"method\":\"thing.event.property.post\",\"id\":\"395041230\",\"params
+             -\":{\"");
+ 415   6                              WIFI_Send("M");
+ 416   6                              WIFI_Send("\":");
+ 417   6                              WIFI_Send(&temp); // bool
+ 418   6                              WIFI_Send("},\"version\":\"1.0.0\"}");
+ 419   6                              count = 0;
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 8   
+
+ 420   6                          }
+ 421   5      
+ 422   5                          if (Recive_table[2] == 'B' && ((Recive_table[5] == '1') || (Recive_table[5] == '0')))
+ 423   5                          {
+ 424   6                              if (jidianqi2 == 0)
+ 425   6                              {
+ 426   7                                  jidianqi2 = 1;
+ 427   7                              }
+ 428   6                              else
+ 429   6                              {
+ 430   7                                  jidianqi2 = 0;
+ 431   7                              }
+ 432   6                              temp[0] = ~jidianqi2;
+ 433   6                              temp[0] = temp[0] + 48;
+ 434   6      
+ 435   6                              Send_Uart(0x30);
+ 436   6                              Send_Uart(0x8C);
+ 437   6                              Send_Uart(0x01);
+ 438   6                              Send_Uart(0x00);
+ 439   6                              Send_Uart(0x30);
+ 440   6                              WIFI_Send("/sys/a1ZqmIXSuSi/esp10/thing/event/property/post");
+ 441   6                              WIFI_Send("{\"method\":\"thing.event.property.post\",\"id\":\"395041230\",\"params
+             -\":{\"");
+ 442   6                              WIFI_Send("N");
+ 443   6                              WIFI_Send("\":");
+ 444   6                              WIFI_Send(&temp); // bool?
+ 445   6                              WIFI_Send("},\"version\":\"1.0.0\"}");
+ 446   6                              count = 0;
+ 447   6                          }
+ 448   5                      }
+ 449   4      
+ 450   4                      TR0 = 1;                  //打开定时器0
+ 451   4                      USART_R = 0;              //清除接收标志位
+ 452   4                      for (i = 0; i++; i <= 35) //清除接收缓存区
+ 453   4                      {
+ 454   5                          Recive_table[i] = 0;
+ 455   5                      }
+ 456   4                  }
+ 457   3              }
+ 458   2      
+ 459   2              if (sign == 2) // sign=2测试服务器连接能否正常通讯
+ 460   2              {
+ 461   3                 
+ 462   3                       led6 = 0;
+ 463   3                  Send_Uart(0xC0); //发送心跳包
+ 464   3                  Send_Uart(0x00);
+ 465   3                  Send_Uart(0xC0);
+ 466   3                  Send_Uart(0x00);
+ 467   3      
+ 468   3                  Send_Uart(0xC0); //发送心跳包
+ 469   3                  Send_Uart(0x00);
+ 470   3                  Send_Uart(0xC0);
+ 471   3                  Send_Uart(0x00);
+ 472   3                  ms_delay(500);
+ 473   3                  wait_times = 200;
+ 474   3                  while (--wait_times)
+ 475   3                  {
+ 476   4                      TR0 = 0;
+ 477   4      
+ 478   4                      ms_delay(10);
+ 479   4                      if (Recive_table[0] == 0xD0) //收到心跳包回复0xD0表示连接正常，否则sign=1重新连接tcp服务器
+ 480   4                      {
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 9   
+
+ 481   5                          led6 = 1;
+ 482   5                          sign = 0;
+ 483   5                          count = 0;
+ 484   5                          i = 0;
+ 485   5                          Recive_table[0] = 0;
+ 486   5                          TR0 = 1;
+ 487   5                          break;
+ 488   5                      }
+ 489   4                  }
+ 490   3                  if (wait_times <= 0)
+ 491   3                  {
+ 492   4                      sign = 1;
+ 493   4                      i = 0;
+ 494   4                      Recive_table[0] = 0;
+ 495   4                  }
+ 496   3              }
+ 497   2      OLED_ShowString(60,4,"Tem",16); //从第71列像素、第4页（第32行像素）开始显示大小为8*16像素的字符串"Ab123%"
+ 498   2      OLED_ShowString(60,6,"Hum",16); 
+ 499   2      OLED_ShowNum(75,4,Tem,6,8); 
+ 500   2      OLED_ShowNum(75,6,Hum,6,8); 
+ 501   2        
+ 502   2        
+ 503   2          }
+ 504   1      }
+ 505          
+ 506          void Uart_Interrupt() interrupt 4 //串口接收中断函数
+ 507          {
+ 508   1          static uchar i = 0;
+ 509   1          if (RI == 1)
+ 510   1          {
+ 511   2              ET0 = 0;
+ 512   2              RI = 0;
+ 513   2              Receive = SBUF;
+ 514   2              Recive_table[i] = Receive;
+ 515   2              if (Recive_table[i] == '{' || Recive_table[i] == 'p' || Recive_table[i] == 0xD0)
+ 516   2              {
+ 517   3                  i = 0;
+ 518   3                  Recive_table[i] = Receive;
+ 519   3              }
+ 520   2              if (Recive_table[i] == '\n' || (Recive_table[i] == '}' && Recive_table[i - 1] == '\"') || (Recive_
+             -table[i - 1] == 0xD0 && Recive_table[i] == 0x00)) //接收到{...”}时接收完成
+ 521   2              {
+ 522   3                  i = 0;
+ 523   3                  USART_R = 1;
+ 524   3              }
+ 525   2              else
+ 526   2              {
+ 527   3                  i++;
+ 528   3                  USART_R = 0;
+ 529   3              }
+ 530   2              if (i >= 34)
+ 531   2              {
+ 532   3                  i = 0;
+ 533   3                  USART_R = 0;
+ 534   3                  for (i = 0; i++; i <= 35) //清除接收缓存区
+ 535   3                  {
+ 536   4                      Recive_table[i] = 0;
+ 537   4                  }
+ 538   3              }
+ 539   2              ET0 = 1;
+ 540   2          }
+ 541   1          else
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 10  
+
+ 542   1          {
+ 543   2              TI = 0;
+ 544   2          }
+ 545   1      }
+ 546          void Timer0() interrupt 1 //定时器0溢出中断
+ 547          {
+ 548   1          static uint m = 0;
+ 549   1          TH0 = 0XDC; //给定时器赋初值，定时10ms
+ 550   1          TL0 = 0X00;
+ 551   1          m++;
+ 552   1      
+ 553   1          if (m >= 300) // 3秒传一次温度数据
+ 554   1          {
+ 555   2              m = 0; //清除中断计数
+ 556   2              count++;
+ 557   2              times = 1;
+ 558   2              move=0;
+ 559   2       led7 = ~led7; // led灯指示状态
+ 560   2          }
+ 561   1       if (count%5==0)
+ 562   1       {
+ 563   2        move=1;
+ 564   2       }
+ 565   1          if (count >= 10) // 检测连接
+ 566   1          {  
+ 567   2              TR0 = 0;
+ 568   2              count = 0;
+ 569   2              sign = 2;
+ 570   2          }
+ 571   1      }
+ 572          
+ 573          
+ 574           
+ 575          void timer2() interrupt 5{
+ 576   1        TF2=0;        //清除中断标志位
+ 577   1      Timer2_Server_Count++;
+ 578   1      
+ 579   1      if(Timer2_Server_Count==16)                    // T2定时器的预装载值为0x0BDC，溢出16次就是1秒钟。
+ 580   1      
+ 581   1      {
+ 582   2      
+ 583   2      
+ 584   2      sec++;          //计时，50个count为1秒
+ 585   2        if(sec == 60)                   //60秒1分钟
+ 586   2        {
+ 587   3          sec = 0;
+ 588   3          min++;
+ 589   3        }
+ 590   2        if(min == 60)                   //60分钟1小时
+ 591   2        {
+ 592   3          min = 0;
+ 593   3          hour++;
+ 594   3        }
+ 595   2        if(hour == 24)                  //24小时制
+ 596   2        {
+ 597   3          hour = 0;
+ 598   3        } 
+ 599   2                 Timer2_Server_Count=0; 
+ 600   2      
+ 601   2      }
+ 602   1      
+ 603   1      }
+C51 COMPILER V9.52.0.0   MAIN                                                              10/14/2022 11:59:57 PAGE 11  
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1931    ----
+   CONSTANT SIZE    =    412    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     74    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
