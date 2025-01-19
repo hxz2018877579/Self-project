@@ -1,0 +1,5 @@
+"main.obj",
+"temp.obj",
+"OLED.obj" 
+TO "template" 
+RAMSIZE(256) 
